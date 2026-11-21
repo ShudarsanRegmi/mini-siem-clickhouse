@@ -48,6 +48,7 @@ wheels/
 data/
 *.log
 .audit/
+.detection_state.json
 k8s-audit.log
 *.pid
 clickhouse-data/
@@ -60,3 +61,7 @@ grafana-data/
 *.swp
 *.swo
 *~
+
+
+#Custom
+temp.txt
