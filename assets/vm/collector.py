@@ -109,12 +109,50 @@ def generate_baseline_vm_telemetry() -> List[Dict[str, Any]]:
 
 
 def parse_auth_log_line(line: str) -> Dict[str, Any]:
-    """Parses a standard Linux auth.log line into a TelemetryEvent."""
+    """Parses standard Linux auth.log or auditd log lines into a TelemetryEvent."""
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
     actor = "root" if "root" in line else "unknown"
     severity = "INFO"
+    category = "auth"
+    event_type = "auth_event"
+    target = "auth.log"
+    process_name = "syslog"
 
-    if "Failed password" in line or "authentication failure" in line:
+    # Auditd SYSCALL / Audit Event Parsing
+    if "type=SYSCALL" in line or "type=USER_CMD" in line or "type=PATH" in line:
+        category = "auditd"
+        # Extract actor if present
+        auid_match = re.search(r'AUID="([^"]+)"', line)
+        if auid_match and auid_match.group(1) != "unset":
+            actor = auid_match.group(1)
+        elif "AUID=\"root\"" in line or "UID=\"root\"" in line:
+            actor = "root"
+
+        # Extract process/exe
+        exe_match = re.search(r'exe="([^"]+)"', line)
+        comm_match = re.search(r'comm="([^"]+)"', line)
+        if exe_match:
+            process_name = exe_match.group(1).split("/")[-1]
+        elif comm_match:
+            process_name = comm_match.group(1)
+
+        # Check for attack signatures
+        if 'key="shadow_access"' in line or "/etc/shadow" in line:
+            event_type = "sensitive_file_access"
+            severity = "HIGH"
+            target = "/etc/shadow"
+        elif 'key="cron_persistence"' in line or "/etc/cron.d" in line:
+            event_type = "cron_modification"
+            severity = "HIGH"
+            target = "/etc/cron.d"
+        elif "bash -i" in line or "/dev/tcp" in line:
+            event_type = "reverse_shell_attempt"
+            severity = "CRITICAL"
+            target = "socket"
+        else:
+            event_type = "auditd_syscall"
+            severity = "LOW"
+    elif "Failed password" in line or "authentication failure" in line:
         event_type = "auth_failure"
         severity = "MEDIUM"
     elif "Accepted" in line:
@@ -122,21 +160,19 @@ def parse_auth_log_line(line: str) -> Dict[str, Any]:
     elif "sudo:" in line:
         event_type = "sudo_execution"
         severity = "LOW"
-    else:
-        event_type = "auth_event"
 
     return {
         "timestamp": now,
         "asset_type": "vm",
         "asset_id": VM_ASSET_ID,
-        "event_category": "auth",
+        "event_category": category,
         "event_type": event_type,
         "severity": severity,
         "actor": actor,
         "source_ip": "127.0.0.1",
-        "process_name": "syslog",
+        "process_name": process_name,
         "command_line": line[:1024],
-        "target_resource": "auth.log",
+        "target_resource": target,
         "raw_json": json.dumps({"log": line}),
     }
 
@@ -177,7 +213,7 @@ def collect_remote_ssh_logs(host: str, user: str, key_path: Optional[str] = None
         ssh_cmd.extend(["-i", key_path])
 
     remote_target = f"{user}@{host}"
-    remote_command = "journalctl -u ssh -n 100 --no-pager 2>/dev/null || cat /var/log/auth.log 2>/dev/null | tail -n 100"
+    remote_command = "sudo tail -n 200 /var/log/audit/audit.log 2>/dev/null; journalctl -u ssh -n 50 --no-pager 2>/dev/null || cat /var/log/auth.log 2>/dev/null | tail -n 50"
 
     try:
         output = subprocess.check_output(
