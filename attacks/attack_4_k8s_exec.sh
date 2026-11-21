@@ -36,4 +36,9 @@ kubectl exec -i "${TARGET_POD}" -n "${NAMESPACE}" -- cat /var/run/secrets/kubern
 echo "[+] Step 5: Cleaning up victim target pod..."
 kubectl delete pod "${TARGET_POD}" -n "${NAMESPACE}" --ignore-not-found=true --grace-period=0 --force > /dev/null 2>&1 || true
 
+echo "[+] Step 6: Forwarding Kubernetes audit telemetry to Mini SIEM Ingestion Gateway..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+"${REPO_DIR}/.venv/bin/python" "${REPO_DIR}/assets/k8s/collector.py" || python3 "${REPO_DIR}/assets/k8s/collector.py" || true
+
 echo "[+] Attack Scenario 4 completed and cleaned up successfully."

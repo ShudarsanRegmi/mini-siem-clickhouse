@@ -32,4 +32,9 @@ ssh "${TARGET_HOST}" 'ls -la /etc/cron.d/sync_backdoor && cat /etc/cron.d/sync_b
 echo "[+] Step 4: Cleaning up persistence backdoor from ${TARGET_HOST}..."
 ssh "${TARGET_HOST}" 'sudo rm -f /etc/cron.d/sync_backdoor'
 
+echo "[+] Step 5: Forwarding Debian VM audit telemetry to Mini SIEM Ingestion Gateway..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+"${REPO_DIR}/.venv/bin/python" "${REPO_DIR}/assets/vm/collector.py" --ssh-host 172.16.151.134 --ssh-user aparichit || python3 "${REPO_DIR}/assets/vm/collector.py" || true
+
 echo "[+] Attack Scenario 2 completed and cleaned up successfully."

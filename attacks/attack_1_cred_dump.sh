@@ -28,4 +28,9 @@ ssh "${TARGET_HOST}" 'sudo cat /etc/shadow | head -n 3'
 echo "[+] Step 3: Verifying audit trail generated on ${TARGET_HOST}..."
 ssh "${TARGET_HOST}" 'sudo tail -n 10 /var/log/audit/audit.log | grep -E "shadow|USER_CMD"' || true
 
+echo "[+] Step 4: Forwarding Debian VM audit telemetry to Mini SIEM Ingestion Gateway..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+"${REPO_DIR}/.venv/bin/python" "${REPO_DIR}/assets/vm/collector.py" --ssh-host 172.16.151.134 --ssh-user aparichit || python3 "${REPO_DIR}/assets/vm/collector.py" || true
+
 echo "[+] Attack Scenario 1 completed successfully."

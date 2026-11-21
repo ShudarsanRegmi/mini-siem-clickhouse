@@ -30,7 +30,7 @@
         "y": 0
       },
       "id": 100,
-      "title": "Security Posture & Compliance Overview",
+      "title": "Fleet Security Posture & Top KPIs",
       "type": "row"
     },
     {
@@ -45,18 +45,11 @@
             "fixedColor": "red",
             "mode": "fixed"
           },
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
             ]
           }
         },
@@ -75,9 +68,7 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -114,14 +105,8 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 1
-              }
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 }
             ]
           }
         },
@@ -140,9 +125,7 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -161,7 +144,63 @@
           "refId": "A"
         }
       ],
-      "title": "High Severity Findings",
+      "title": "High Severity Posture",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "P8301CFBB4E66FEF2"
+      },
+      "description": "Total security events ingested across all 4 assets",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "id": 10,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "P8301CFBB4E66FEF2"
+          },
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT count() AS total_telemetry FROM siem.raw_telemetry;",
+          "refId": "A"
+        }
+      ],
+      "title": "Total Telemetry Ingested",
       "type": "stat"
     },
     {
@@ -179,10 +218,7 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "blue",
-                "value": null
-              }
+              { "color": "blue", "value": null }
             ]
           }
         },
@@ -191,7 +227,7 @@
       "gridPos": {
         "h": 4,
         "w": 6,
-        "x": 12,
+        "x": 18,
         "y": 1
       },
       "id": 3,
@@ -201,9 +237,7 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -226,49 +260,54 @@
       "type": "stat"
     },
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 102,
+      "title": "Multi-Asset Telemetry & Attack Activity Stream",
+      "type": "row"
+    },
+    {
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "P8301CFBB4E66FEF2"
       },
-      "description": "Number of distinct assets currently sending telemetry or scanned",
+      "description": "Distribution of ingested telemetry across monitored assets",
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "fixedColor": "blue",
-            "mode": "fixed"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "blue",
-                "value": null
-              }
-            ]
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1,
+            "scaleDistribution": { "type": "linear" }
           }
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 1
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 6
       },
-      "id": 4,
+      "id": 11,
       "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
+        "displayLabels": ["value", "percent"],
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "tooltip": { "mode": "single", "sort": "none" }
       },
       "pluginVersion": "10.4.2",
       "targets": [
@@ -279,12 +318,48 @@
           },
           "format": 1,
           "queryType": "sql",
-          "rawSql": "SELECT uniqExact(asset_id) AS monitored_assets FROM siem.raw_telemetry;",
+          "rawSql": "SELECT asset_type, count() AS events FROM siem.raw_telemetry GROUP BY asset_type ORDER BY events DESC;",
           "refId": "A"
         }
       ],
-      "title": "Active Monitored Assets",
-      "type": "stat"
+      "title": "Telemetry Events by Asset Class",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "P8301CFBB4E66FEF2"
+      },
+      "description": "Live chronological stream of security events and attack logs across Laptop, VM, Kubernetes, and GitHub",
+      "gridPos": {
+        "h": 7,
+        "w": 16,
+        "x": 8,
+        "y": 6
+      },
+      "id": 12,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "show": true },
+        "sortBy": [
+          { "desc": true, "displayName": "timestamp" }
+        ]
+      },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "P8301CFBB4E66FEF2"
+          },
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT timestamp, asset_type, asset_id, event_type, severity, actor, target_resource, command_line FROM siem.raw_telemetry ORDER BY timestamp DESC LIMIT 100;",
+          "refId": "A"
+        }
+      ],
+      "title": "Live Multi-Asset Telemetry & Attack Stream",
+      "type": "table"
     },
     {
       "collapsed": false,
@@ -292,7 +367,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 13
       },
       "id": 101,
       "title": "Active Threat Detection Timeline & Alerts",
@@ -318,10 +393,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 24,
         "x": 0,
-        "y": 6
+        "y": 14
       },
       "id": 5,
       "options": {
@@ -359,7 +434,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 21
       },
       "id": 6,
       "options": {
@@ -409,6 +484,6 @@
   "timezone": "browser",
   "title": "Mini SIEM - Fleet Security Overview",
   "uid": "mini-siem-overview",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

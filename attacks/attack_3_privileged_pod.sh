@@ -32,4 +32,9 @@ kubectl get pod privileged-escape-pod -o jsonpath='{.spec.containers[0].security
 echo "[+] Step 4: Cleaning up privileged pod..."
 kubectl delete -f "${MANIFEST}" --ignore-not-found=true --grace-period=0 --force > /dev/null 2>&1 || true
 
+echo "[+] Step 5: Forwarding Kubernetes audit telemetry to Mini SIEM Ingestion Gateway..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+"${REPO_DIR}/.venv/bin/python" "${REPO_DIR}/assets/k8s/collector.py" || python3 "${REPO_DIR}/assets/k8s/collector.py" || true
+
 echo "[+] Attack Scenario 3 completed and cleaned up successfully."
