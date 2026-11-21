@@ -11,9 +11,10 @@ import re
 import socket
 import datetime
 import json
+import subprocess
 import argparse
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import requests
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -162,16 +163,54 @@ def ship_telemetry(events: List[Dict[str, Any]]) -> int:
     return 0
 
 
+def collect_remote_ssh_logs(host: str, user: str, key_path: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Fetches real auth and journal security logs from remote Linux VM via SSH."""
+    events = []
+    ssh_cmd = [
+        "ssh",
+        "-o", "StrictHostKeyChecking=no",
+        "-o", "UserKnownHostsFile=/dev/null",
+        "-o", "ConnectTimeout=5",
+    ]
+    if key_path:
+        ssh_cmd.extend(["-i", key_path])
+
+    remote_target = f"{user}@{host}"
+    remote_command = "journalctl -u ssh -n 100 --no-pager 2>/dev/null || cat /var/log/auth.log 2>/dev/null | tail -n 100"
+
+    try:
+        output = subprocess.check_output(
+            ssh_cmd + [remote_target, remote_command],
+            universal_newlines=True,
+            timeout=10,
+        )
+        for line in output.splitlines():
+            line = line.strip()
+            if line:
+                events.append(parse_auth_log_line(line))
+        print(f"[+] Successfully pulled {len(events)} security log lines from VM {host} via SSH.")
+    except Exception as e:
+        print(f"[!] Warning: SSH remote log collection failed: {e}. Falling back to baseline simulation.")
+        return generate_baseline_vm_telemetry()
+
+    return events if events else generate_baseline_vm_telemetry()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Linux VM Telemetry Collector")
     parser.add_argument("--baseline", action="store_true", help="Generate and ship baseline VM audit telemetry")
     parser.add_argument("--log-file", type=str, help="Path to auth.log to parse and ship")
+    parser.add_argument("--ssh-host", type=str, help="IP or hostname of remote Linux VM to pull logs from")
+    parser.add_argument("--ssh-user", type=str, default="aparichit", help="SSH user on remote VM")
+    parser.add_argument("--ssh-key", type=str, help="Path to SSH private key for remote VM")
     args = parser.parse_args()
 
     print(f"[*] Starting Linux VM Telemetry Collector for asset '{VM_ASSET_ID}'...")
 
     events = []
-    if args.log_file and os.path.exists(args.log_file):
+    if args.ssh_host:
+        events = collect_remote_ssh_logs(args.ssh_host, args.ssh_user, args.ssh_key)
+    elif args.log_file and os.path.exists(args.log_file):
         print(f"[*] Reading auth log file: {args.log_file}")
         with open(args.log_file, "r") as f:
             for line in f:

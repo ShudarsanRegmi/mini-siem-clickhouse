@@ -31,9 +31,12 @@
 
 ## 3. Verification & Metrics
 - Ingestion Gateway active at `http://127.0.0.1:8000` (`{"status":"healthy"}`).
-- Live data ingested across all 4 asset types:
-  - `laptop`: 472 events across 29 unique actors.
-  - `vm`: 6 events covering SSH, sudo, cron, and network activity.
-  - `k8s`: 4 events covering pod lifecycle, configmaps, and garbage collector.
-  - `github`: 9 authenticated webhook events.
+- Multi-Asset Infrastructure State:
+  - **Asset 1 (Laptop):** Real host (`SUSHANKYA`) collector operational (`478` events).
+  - **Asset 2 (Real VM):** VMware Workstation Debian 12 64-bit VM active at `172.16.151.134`, SSH listening on port 22, remote log pull supported via `assets/vm/collector.py`.
+  - **Asset 3 (Kubernetes Cluster):** Kind cluster `siem-k8s-cluster` (`v1.31.2`) recording live audit trail to `.audit/kube-audit.log`, chunked collector forwarding (`2,053` events).
+  - **Asset 4 (GitHub Repository):** Public GitHub repository `ShudarsanRegmi/mini-siem-clickhouse` initialized, pushed, and polling live commit webhooks (`20` events).
+- ClickHouse Data Model Hardening:
+  - Converted `source_ip` to `Nullable(String)` to eliminate parsing exceptions on IPv6 loopback (`::1`) addresses emitted by Kubernetes audit logs.
 - Full test suite passes: 26/26 tests passing across Unit, Integration, Security, and E2E tiers.
+

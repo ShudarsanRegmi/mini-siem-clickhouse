@@ -11,6 +11,7 @@ import hmac
 import hashlib
 import json
 import datetime
+import subprocess
 import argparse
 from pathlib import Path
 from typing import List, Dict, Any
@@ -26,7 +27,7 @@ load_env_file()
 
 WEBHOOK_URL = os.getenv("GITHUB_WEBHOOK_URL", "http://127.0.0.1:8000/api/v1/webhooks/github")
 GITHUB_SECRET = os.getenv("GITHUB_WEBHOOK_SECRET", "")
-DEFAULT_REPO = os.getenv("GITHUB_TARGET_REPO", "cybosec/mini-siem-clickhouse")
+DEFAULT_REPO = os.getenv("GITHUB_TARGET_REPO", "ShudarsanRegmi/mini-siem-clickhouse")
 
 
 def sign_payload(payload_bytes: bytes, secret: str = GITHUB_SECRET) -> str:
@@ -120,13 +121,50 @@ def forward_webhook_event(event_name: str, payload_dict: Dict[str, Any]) -> bool
         return False
 
 
+def collect_live_github_events(repo_name: str = DEFAULT_REPO) -> List[Dict[str, Any]]:
+    """Polls real GitHub commit and activity events using authenticated GitHub CLI."""
+    events = []
+    try:
+        cmd = ["gh", "api", f"repos/{repo_name}/commits?per_page=10"]
+        output = subprocess.check_output(cmd, universal_newlines=True, timeout=10)
+        commits_data = json.loads(output)
+        for c in commits_data:
+            events.append({
+                "event_name": "push",
+                "payload": {
+                    "ref": "refs/heads/main",
+                    "repository": {"full_name": repo_name},
+                    "sender": {"login": c.get("author", {}).get("login", c.get("commit", {}).get("author", {}).get("name", "unknown"))},
+                    "head_commit": {
+                        "id": c.get("sha", ""),
+                        "message": c.get("commit", {}).get("message", ""),
+                        "timestamp": c.get("commit", {}).get("author", {}).get("date", ""),
+                    },
+                    "commits": [{
+                        "id": c.get("sha", ""),
+                        "message": c.get("commit", {}).get("message", ""),
+                        "author": c.get("commit", {}).get("author", {}),
+                    }],
+                },
+            })
+    except Exception as e:
+        print(f"[!] Live GitHub API poll note: {e}. Falling back to baseline event simulation.")
+        return generate_baseline_github_events(repo_name)
+
+    return events if events else generate_baseline_github_events(repo_name)
+
+
 def main():
     parser = argparse.ArgumentParser(description="GitHub Repository Telemetry Collector")
     parser.add_argument("--repo", type=str, default=DEFAULT_REPO, help="Repository name (owner/repo)")
+    parser.add_argument("--baseline", action="store_true", help="Force baseline simulated events instead of live API")
     args = parser.parse_args()
 
     print(f"[*] Starting GitHub Telemetry Collector for repo '{args.repo}'...")
-    events = generate_baseline_github_events(args.repo)
+    if args.baseline:
+        events = generate_baseline_github_events(args.repo)
+    else:
+        events = collect_live_github_events(args.repo)
 
     sent = 0
     for ev in events:
@@ -134,7 +172,7 @@ def main():
         if ok:
             sent += 1
 
-    print(f"[+] Successfully delivered {sent}/{len(events)} authenticated GitHub events.")
+    print(f"[+] Successfully delivered {sent}/{len(events)} authenticated GitHub events to Mini SIEM.")
 
 
 if __name__ == "__main__":
