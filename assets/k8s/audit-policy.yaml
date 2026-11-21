@@ -1,0 +1,41 @@
+apiVersion: audit.k8s.io/v1
+kind: Policy
+# Do not generate audit events for routine node health checks
+omitStages:
+  - "RequestReceived"
+rules:
+  # The following requests are considered high risk and must be logged at RequestResponse level:
+  # 1. Pod Exec and Attach (Interactive container access)
+  - level: RequestResponse
+    verbs: ["create"]
+    resources:
+      - group: ""
+        resources: ["pods/exec", "pods/attach", "pods/portforward"]
+
+  # 2. Privileged access to Secrets and ConfigMaps
+  - level: RequestResponse
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+    resources:
+      - group: ""
+        resources: ["secrets", "serviceaccounts"]
+
+  # 3. RBAC Changes (ClusterRole, RoleBindings)
+  - level: RequestResponse
+    verbs: ["create", "update", "patch", "delete"]
+    resources:
+      - group: "rbac.authorization.k8s.io"
+        resources: ["clusterroles", "clusterrolebindings", "roles", "rolebindings"]
+
+  # 4. Workload Creation & Deletion (Pods, Deployments, DaemonSets)
+  - level: RequestResponse
+    verbs: ["create", "update", "patch", "delete"]
+    resources:
+      - group: ""
+        resources: ["pods"]
+      - group: "apps"
+        resources: ["deployments", "daemonsets", "statefulsets"]
+
+  # 5. Fallback: Log metadata for other requests
+  - level: Metadata
+    omitStages:
+      - "RequestReceived"

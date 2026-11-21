@@ -3,6 +3,7 @@
 # Security Hardening:
 #  - Localhost binding only (127.0.0.1) prevents exposure to external networks
 #  - Least privilege database users configured via RBAC
+#  - Gateway runs as unprivileged non-root container user
 #  - No hardcoded passwords in configuration
 # ==============================================================================
 
@@ -36,6 +37,28 @@ services:
       timeout: 3s
       retries: 10
       start_period: 3s
+    networks:
+      - siem_net
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: siem_gateway
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"  # Ingestion Gateway (Localhost only)
+    environment:
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_PORT=8123
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB:-siem}
+      - CLICKHOUSE_INGEST_USER=${CLICKHOUSE_INGEST_USER:-siem_ingest}
+      - CLICKHOUSE_INGEST_PASSWORD=${CLICKHOUSE_INGEST_PASSWORD}
+      - INGESTION_BEARER_TOKEN=${INGESTION_BEARER_TOKEN}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+    depends_on:
+      clickhouse:
+        condition: service_healthy
     networks:
       - siem_net
 
