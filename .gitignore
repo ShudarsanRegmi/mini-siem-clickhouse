@@ -1,3 +1,23 @@
+# Environments & Secrets
+.env
+.env.*
+!.env.example
+*.env
+*.secret
+*.token
+*.key
+*.pem
+*.crt
+*.csr
+*.pfx
+*.p12
+*.kdbx
+id_rsa*
+id_ed25519*
+*credentials*
+*secret*
+*kubeconfig*
+
 # Python
 __pycache__/
 *.py[cod]
@@ -24,11 +44,14 @@ wheels/
 .installed.cfg
 *.egg
 
-# ClickHouse & Grafana Data volumes
+# ClickHouse & Grafana Data volumes & state
 data/
 *.log
 .audit/
 k8s-audit.log
+*.pid
+clickhouse-data/
+grafana-data/
 
 # IDE & OS
 .vscode/
@@ -36,3 +59,4 @@ k8s-audit.log
 .DS_Store
 *.swp
 *.swo
+*~
