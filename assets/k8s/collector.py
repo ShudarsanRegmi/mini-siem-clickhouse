@@ -155,16 +155,21 @@ def ship_telemetry(events: List[Dict[str, Any]]) -> int:
         "Content-Type": "application/json",
     }
 
-    try:
-        resp = requests.post(GATEWAY_URL, json=events, headers=headers, timeout=10)
-        if resp.status_code == 201:
-            return resp.json().get("inserted", 0)
-        else:
-            print(f"[-] Gateway returned error {resp.status_code}: {resp.text}")
-    except Exception as e:
-        print(f"[-] Network error shipping K8s telemetry: {e}")
+    chunk_size = 200
+    total_shipped = 0
 
-    return 0
+    for i in range(0, len(events), chunk_size):
+        chunk = events[i : i + chunk_size]
+        try:
+            resp = requests.post(GATEWAY_URL, json=chunk, headers=headers, timeout=15)
+            if resp.status_code == 201:
+                total_shipped += resp.json().get("inserted", 0)
+            else:
+                print(f"[-] Gateway returned error {resp.status_code}: {resp.text}")
+        except Exception as e:
+            print(f"[-] Network error shipping K8s telemetry chunk {i//chunk_size + 1}: {e}")
+
+    return total_shipped
 
 
 def main():

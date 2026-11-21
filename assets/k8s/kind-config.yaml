@@ -3,20 +3,32 @@ apiVersion: kind.x-k8s.io/v1alpha4
 name: siem-k8s-cluster
 nodes:
 - role: control-plane
+  image: kindest/node:v1.31.2
   extraMounts:
-  - hostPath: ./assets/k8s/audit-policy.yaml
-    containerPath: /etc/kubernetes/audit-policy.yaml
+  - hostPath: /home/aparichit/Desktop/ObsidianVaults/CyboSec/Tasks/Motorq-Hiring/mini-siem-clickhouse/assets/k8s/audit-policy.yaml
+    containerPath: /etc/kubernetes/policies/audit-policy.yaml
     readOnly: true
-  - hostPath: ./.audit
+  - hostPath: /home/aparichit/Desktop/ObsidianVaults/CyboSec/Tasks/Motorq-Hiring/mini-siem-clickhouse/.audit
     containerPath: /var/log/kubernetes
     readOnly: false
   kubeadmConfigPatches:
   - |
     kind: ClusterConfiguration
     apiServer:
+      extraVolumes:
+      - name: audit-policy
+        hostPath: /etc/kubernetes/policies/audit-policy.yaml
+        mountPath: /etc/kubernetes/policies/audit-policy.yaml
+        readOnly: true
+        pathType: File
+      - name: audit-logs
+        hostPath: /var/log/kubernetes
+        mountPath: /var/log/kubernetes
+        readOnly: false
+        pathType: DirectoryOrCreate
       extraArgs:
+        audit-policy-file: /etc/kubernetes/policies/audit-policy.yaml
         audit-log-path: /var/log/kubernetes/kube-audit.log
-        audit-policy-file: /etc/kubernetes/audit-policy.yaml
         audit-log-maxage: "1"
         audit-log-maxbackup: "1"
         audit-log-maxsize: "100"

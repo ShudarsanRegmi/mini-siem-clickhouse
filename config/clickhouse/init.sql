@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS siem.raw_telemetry
     event_type LowCardinality(String),
     severity LowCardinality(String) DEFAULT 'INFO',
     actor String DEFAULT '',
-    source_ip Nullable(IPv4),
+    source_ip Nullable(String),
     process_name Nullable(String),
     command_line Nullable(String),
     target_resource Nullable(String),
