@@ -168,6 +168,7 @@ def collect_remote_ssh_logs(host: str, user: str, key_path: Optional[str] = None
     events = []
     ssh_cmd = [
         "ssh",
+        "-o", "BatchMode=yes",
         "-o", "StrictHostKeyChecking=no",
         "-o", "UserKnownHostsFile=/dev/null",
         "-o", "ConnectTimeout=5",

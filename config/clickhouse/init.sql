@@ -109,6 +109,8 @@ GRANT INSERT ON siem.posture_findings TO siem_ingest_role;
 CREATE ROLE IF NOT EXISTS siem_detector_role;
 GRANT SELECT ON siem.raw_telemetry TO siem_detector_role;
 GRANT SELECT ON siem.posture_findings TO siem_detector_role;
+GRANT SELECT ON siem.v_latest_posture TO siem_detector_role;
+GRANT SELECT ON siem.v_posture_summary TO siem_detector_role;
 GRANT INSERT ON siem.security_alerts TO siem_detector_role;
 
 -- Viewer Role (e.g. Grafana): Read-only SELECT on all siem tables and views
