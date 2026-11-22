@@ -1,0 +1,513 @@
+#!/usr/bin/env python3
+"""
+Generates the ClickHouse DB Explorer & Raw Inspector Grafana dashboard JSON.
+Provides raw table inspection, search filtering, compression stats,
+and an ad-hoc SQL query runner scratchpad.
+"""
+
+import json
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+OUTPUT_FILE = REPO_ROOT / "dashboards" / "clickhouse_db_explorer.json"
+
+db_explorer = {
+  "annotations": { "list": [] },
+  "editable": True,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": None,
+  "links": [
+    {
+      "asDropdown": False,
+      "icon": "dashboard",
+      "includeVars": True,
+      "keepTime": True,
+      "tags": [],
+      "targetBlank": False,
+      "title": "← Return to Mini SIEM Overview",
+      "tooltip": "Back to executive dashboard",
+      "type": "link",
+      "url": "/d/mini-siem-overview"
+    },
+    {
+      "asDropdown": False,
+      "icon": "compass",
+      "includeVars": False,
+      "keepTime": True,
+      "tags": [],
+      "targetBlank": True,
+      "title": "Open Grafana Explore (Ad-Hoc SQL Console)",
+      "tooltip": "Full ad-hoc SQL query console",
+      "type": "link",
+      "url": "/explore?schemaVersion=1&panes=%7B%22a%22%3A%7B%22datasource%22%3A%22P8301CFBB4E66FEF2%22%7D%7D"
+    }
+  ],
+  "liveNow": False,
+  "panels": [
+    {
+      "collapsed": False,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Database Health & Storage Footprint",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": None }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": False },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT count() AS total_raw_telemetry FROM siem.raw_telemetry;",
+          "refId": "A"
+        }
+      ],
+      "title": "Raw Telemetry Rows",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "orange", "mode": "fixed" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": None }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": False },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT count() AS open_posture_findings FROM siem.v_latest_posture WHERE status = 'OPEN';",
+          "refId": "A"
+        }
+      ],
+      "title": "Open Posture Findings",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "red", "mode": "fixed" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": None }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": False },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT count() AS total_security_alerts FROM siem.security_alerts;",
+          "refId": "A"
+        }
+      ],
+      "title": "Security Alerts Generated",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": True },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": None }] }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "compression_ratio" },
+            "properties": [
+              { "id": "unit", "value": "none" },
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "yellow", "value": None },
+                    { "color": "green", "value": 10 }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 1 },
+      "id": 4,
+      "options": { "cellHeight": "sm", "footer": { "show": False }, "showHeader": True },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT table, sum(rows) AS total_rows, formatReadableSize(sum(data_compressed_bytes)) AS compressed_size, formatReadableSize(sum(data_uncompressed_bytes)) AS uncompressed_size, round(sum(data_uncompressed_bytes) / sum(data_compressed_bytes), 2) AS compression_ratio FROM system.parts WHERE database = 'siem' AND active = 1 GROUP BY table ORDER BY total_rows DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "ClickHouse Storage & Compression Metrics (system.parts)",
+      "type": "table"
+    },
+    {
+      "collapsed": False,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 200,
+      "title": "Interactive Raw Table Browser (Selected: $target_table)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+      "description": "Displays all raw columns of the table chosen in the $target_table selector.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": True },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": None }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 11, "w": 24, "x": 0, "y": 6 },
+      "id": 201,
+      "options": { "cellHeight": "sm", "footer": { "enablePagination": True, "show": True }, "showHeader": True },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT * FROM siem.$target_table LIMIT $row_limit;",
+          "refId": "A"
+        }
+      ],
+      "title": "Live Raw Table View: siem.$target_table (Limit $row_limit)",
+      "type": "table"
+    },
+    {
+      "collapsed": True,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "id": 300,
+      "panels": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+          "description": "Raw events with search keyword filtering across raw_json, command_line, actor, and target_resource.",
+          "fieldConfig": {
+            "defaults": {
+              "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": True },
+              "mappings": []
+            },
+            "overrides": [
+              {
+                "matcher": { "id": "byName", "options": "severity" },
+                "properties": [
+                  { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "blue", "value": None },
+                        { "color": "orange", "value": 1 },
+                        { "color": "red", "value": 2 }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": { "h": 12, "w": 24, "x": 0, "y": 18 },
+          "id": 301,
+          "options": { "cellHeight": "sm", "footer": { "enablePagination": True, "show": True }, "showHeader": True },
+          "pluginVersion": "10.4.2",
+          "targets": [
+            {
+              "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+              "format": 1,
+              "queryType": "sql",
+              "rawSql": "SELECT timestamp, asset_type, asset_id, event_category, event_type, severity, actor, source_ip, process_name, command_line, target_resource, raw_json FROM siem.raw_telemetry WHERE ('$search_keyword' = '' OR position(lower(raw_json), lower('$search_keyword')) > 0 OR position(lower(command_line), lower('$search_keyword')) > 0 OR position(lower(target_resource), lower('$search_keyword')) > 0 OR position(lower(actor), lower('$search_keyword')) > 0) ORDER BY timestamp DESC LIMIT $row_limit;",
+              "refId": "A"
+            }
+          ],
+          "title": "Table: siem.raw_telemetry (Filtered by '$search_keyword')",
+          "type": "table"
+        }
+      ],
+      "title": "Table Inspector: siem.raw_telemetry (Click to Expand)",
+      "type": "row"
+    },
+    {
+      "collapsed": True,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 400,
+      "panels": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+          "description": "Latest deduplicated posture findings from v_latest_posture view.",
+          "fieldConfig": {
+            "defaults": {
+              "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": True },
+              "mappings": []
+            },
+            "overrides": [
+              {
+                "matcher": { "id": "byName", "options": "severity" },
+                "properties": [
+                  { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "blue", "value": None },
+                        { "color": "yellow", "value": 1 },
+                        { "color": "orange", "value": 2 },
+                        { "color": "red", "value": 3 }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": { "h": 12, "w": 24, "x": 0, "y": 19 },
+          "id": 401,
+          "options": { "cellHeight": "sm", "footer": { "enablePagination": True, "show": True }, "showHeader": True },
+          "pluginVersion": "10.4.2",
+          "targets": [
+            {
+              "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+              "format": 1,
+              "queryType": "sql",
+              "rawSql": "SELECT scan_timestamp, severity, status, asset_type, asset_id, scanner_tool, finding_type, check_id, title, remediation, details FROM siem.v_latest_posture WHERE ('$search_keyword' = '' OR position(lower(title), lower('$search_keyword')) > 0 OR position(lower(check_id), lower('$search_keyword')) > 0 OR position(lower(details), lower('$search_keyword')) > 0) ORDER BY scan_timestamp DESC LIMIT $row_limit;",
+              "refId": "A"
+            }
+          ],
+          "title": "Table: siem.v_latest_posture (Deduplicated Posture State)",
+          "type": "table"
+        }
+      ],
+      "title": "Table Inspector: siem.v_latest_posture (Click to Expand)",
+      "type": "row"
+    },
+    {
+      "collapsed": True,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 19 },
+      "id": 500,
+      "panels": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+          "description": "Fired detection alerts with MITRE ATT&CK mapping and evidence context.",
+          "fieldConfig": {
+            "defaults": {
+              "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": True },
+              "mappings": []
+            },
+            "overrides": [
+              {
+                "matcher": { "id": "byName", "options": "severity" },
+                "properties": [
+                  { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "blue", "value": None },
+                        { "color": "yellow", "value": 1 },
+                        { "color": "orange", "value": 2 },
+                        { "color": "red", "value": 3 }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": { "h": 12, "w": 24, "x": 0, "y": 20 },
+          "id": 501,
+          "options": { "cellHeight": "sm", "footer": { "enablePagination": True, "show": True }, "showHeader": True },
+          "pluginVersion": "10.4.2",
+          "targets": [
+            {
+              "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+              "format": 1,
+              "queryType": "sql",
+              "rawSql": "SELECT triggered_at, severity, mitre_tactic, mitre_technique, rule_id, rule_name, asset_type, asset_id, matched_events_count, alert_description, evidence_context FROM siem.security_alerts WHERE ('$search_keyword' = '' OR position(lower(rule_name), lower('$search_keyword')) > 0 OR position(lower(mitre_tactic), lower('$search_keyword')) > 0 OR position(lower(evidence_context), lower('$search_keyword')) > 0) ORDER BY triggered_at DESC LIMIT $row_limit;",
+              "refId": "A"
+            }
+          ],
+          "title": "Table: siem.security_alerts (Detection Rule Triggers)",
+          "type": "table"
+        }
+      ],
+      "title": "Table Inspector: siem.security_alerts (Click to Expand)",
+      "type": "row"
+    },
+    {
+      "collapsed": False,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
+      "id": 600,
+      "title": "Ad-Hoc SQL Runner & Scratchpad (Edit Query Live)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+      "description": "Click the panel menu (...) -> Edit to type and execute any custom SQL query!",
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": True },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 15, "x": 0, "y": 22 },
+      "id": 601,
+      "options": { "cellHeight": "sm", "footer": { "enablePagination": True, "show": True }, "showHeader": True },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "P8301CFBB4E66FEF2" },
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT asset_type, count() AS total_events, uniqExact(actor) AS distinct_actors, groupUniqArray(event_type) AS event_types FROM siem.raw_telemetry GROUP BY asset_type ORDER BY total_events DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Ad-Hoc SQL Query Scratchpad (Click 'Edit' to change SQL)",
+      "type": "table"
+    },
+    {
+      "gridPos": { "h": 10, "w": 9, "x": 15, "y": 22 },
+      "id": 602,
+      "options": {
+        "content": "### 🛠️ How to Use This DB Explorer\n\n1. **Browse Any Table**:\n   - Use the **`$target_table`** dropdown at the top to switch between `raw_telemetry`, `posture_findings`, `security_alerts`, `v_latest_posture`, and `v_posture_summary`.\n2. **Filter by Keyword**:\n   - Type any string in **`$search_keyword`** (e.g. `shadow`, `AKIA`, `root`, `exec`) to filter rows.\n3. **Run Any Ad-Hoc SQL**:\n   - Click the **`...`** (three dots) on the scratchpad panel to the left and click **Edit**.\n   - Edit the SQL query directly and hit **Refresh** to see instant results!\n4. **Explore Mode (No Save Needed)**:\n   - Use [Grafana Explore](/explore?schemaVersion=1&panes=%7B%22a%22%3A%7B%22datasource%22%3A%22P8301CFBB4E66FEF2%22%7D%7D) for a dedicated scratchpad console with auto-completion.\n\n> **Read-Only Privilege**: Queries run with `siem_viewer` credentials, protecting against accidental writes or schema drops.",
+        "mode": "markdown"
+      },
+      "pluginVersion": "10.4.2",
+      "title": "DB Explorer Instructions & Tips",
+      "type": "text"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["clickhouse", "database", "dbexplorer", "raw-data", "sql"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": True, "text": "raw_telemetry", "value": "raw_telemetry" },
+        "description": "Select table or view to inspect in raw format",
+        "hide": 0,
+        "includeAll": False,
+        "label": "Target Table",
+        "multi": False,
+        "name": "target_table",
+        "options": [
+          { "selected": True, "text": "raw_telemetry", "value": "raw_telemetry" },
+          { "selected": False, "text": "posture_findings", "value": "posture_findings" },
+          { "selected": False, "text": "security_alerts", "value": "security_alerts" },
+          { "selected": False, "text": "v_latest_posture", "value": "v_latest_posture" },
+          { "selected": False, "text": "v_posture_summary", "value": "v_posture_summary" }
+        ],
+        "query": "raw_telemetry,posture_findings,security_alerts,v_latest_posture,v_posture_summary",
+        "queryValue": "",
+        "skipUrlSync": False,
+        "type": "custom"
+      },
+      {
+        "current": { "selected": True, "text": "50", "value": "50" },
+        "description": "Maximum rows to fetch per query",
+        "hide": 0,
+        "includeAll": False,
+        "label": "Row Limit",
+        "multi": False,
+        "name": "row_limit",
+        "options": [
+          { "selected": False, "text": "10", "value": "10" },
+          { "selected": False, "text": "25", "value": "25" },
+          { "selected": True, "text": "50", "value": "50" },
+          { "selected": False, "text": "100", "value": "100" },
+          { "selected": False, "text": "250", "value": "250" },
+          { "selected": False, "text": "500", "value": "500" }
+        ],
+        "query": "10,25,50,100,250,500",
+        "queryValue": "",
+        "skipUrlSync": False,
+        "type": "custom"
+      },
+      {
+        "current": { "selected": False, "value": "" },
+        "description": "Optional keyword to search across text & JSON columns",
+        "hide": 0,
+        "label": "Search Keyword",
+        "name": "search_keyword",
+        "options": [{ "selected": True, "text": "", "value": "" }],
+        "query": "",
+        "skipUrlSync": False,
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": { "from": "now-24h", "to": "now" },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"],
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
+  },
+  "timezone": "utc",
+  "title": "ClickHouse DB Explorer & Raw Tables",
+  "uid": "clickhouse-db-explorer",
+  "version": 1,
+  "weekStart": ""
+}
+
+OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    json.dump(db_explorer, f, indent=2)
+
+print(f"Generated dashboard: {OUTPUT_FILE}")
