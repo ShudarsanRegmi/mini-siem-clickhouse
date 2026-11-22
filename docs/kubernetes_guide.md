@@ -299,8 +299,13 @@ python3 mini-siem-clickhouse/assets/k8s/collector.py
 ```
 
 #### 4. Query ClickHouse to see your events:
+Since ClickHouse runs inside the `siem_clickhouse` Docker container, you can run queries directly from your host terminal using `docker exec`:
+
 ```bash
-clickhouse-client --query "
+docker exec -i siem_clickhouse clickhouse-client \
+  --user default \
+  --password "$(grep CLICKHOUSE_ADMIN_PASSWORD mini-siem-clickhouse/.env | cut -d= -f2)" \
+  --query "
 SELECT timestamp, asset_id, event_name, actor, details
 FROM siem.raw_telemetry
 WHERE asset_type = 'k8s'
@@ -309,6 +314,7 @@ LIMIT 5
 FORMAT PrettyCompact
 "
 ```
+*(Alternatively, you can also paste this query directly into **Grafana Explore** at `http://localhost:3000/explore` selecting the ClickHouse datasource!)*
 
 #### 5. Run the detection engine:
 ```bash
