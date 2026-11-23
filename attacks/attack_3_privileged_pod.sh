@@ -37,4 +37,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 "${REPO_DIR}/.venv/bin/python" "${REPO_DIR}/assets/k8s/collector.py" || python3 "${REPO_DIR}/assets/k8s/collector.py" || true
 
+echo "[+] Step 6: Triggering Detection Engine to evaluate rules against ClickHouse..."
+"${REPO_DIR}/.venv/bin/python" "${REPO_DIR}/detections/engine.py" --once --lookback 60 || python3 "${REPO_DIR}/detections/engine.py" --once --lookback 60 || true
+
 echo "[+] Attack Scenario 3 completed and cleaned up successfully."

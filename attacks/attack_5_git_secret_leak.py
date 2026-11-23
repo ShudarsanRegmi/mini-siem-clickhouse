@@ -83,11 +83,20 @@ def simulate_secret_leak_commit():
         collector_script = REPO_ROOT / "assets" / "github" / "collector.py"
         subprocess.run([sys.executable, str(collector_script), "--branch", branch_name], check=True, cwd=str(REPO_ROOT))
 
+        # Step 6: Trigger Detection Engine to analyze newly ingested audit telemetry
+        print(f"[+] Step 6: Triggering Detection Engine to evaluate rules against ClickHouse...")
+        try:
+            from detections.engine import evaluate_rules
+            fired = evaluate_rules(lookback_minutes=60)
+            print(f"[+] Detection Engine evaluated all rules and fired {fired} new alert(s)!")
+        except Exception as e:
+            print(f"[!] Note evaluating detection engine: {e}")
+
         print("[+] Attack Scenario 5 completed successfully.")
 
     finally:
-        # Step 6: Return local working tree cleanly to main
-        print("[+] Step 6: Restoring local repository to branch 'main'...")
+        # Step 7: Return local working tree cleanly to main
+        print("[+] Step 7: Restoring local repository to branch 'main'...")
         subprocess.run(["git", "checkout", "main"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=str(REPO_ROOT))
         subprocess.run(["git", "branch", "-D", branch_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=str(REPO_ROOT))
         if key_file.exists():

@@ -33,4 +33,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 "${REPO_DIR}/.venv/bin/python" "${REPO_DIR}/assets/vm/collector.py" --ssh-host 172.16.151.134 --ssh-user aparichit || python3 "${REPO_DIR}/assets/vm/collector.py" || true
 
+echo "[+] Step 5: Triggering Detection Engine to evaluate rules against ClickHouse..."
+"${REPO_DIR}/.venv/bin/python" "${REPO_DIR}/detections/engine.py" --once --lookback 60 || python3 "${REPO_DIR}/detections/engine.py" --once --lookback 60 || true
+
 echo "[+] Attack Scenario 1 completed successfully."
