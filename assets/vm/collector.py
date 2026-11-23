@@ -121,6 +121,17 @@ def parse_auth_log_line(line: str) -> Dict[str, Any]:
     # Auditd SYSCALL / Audit Event Parsing
     if "type=SYSCALL" in line or "type=USER_CMD" in line or "type=PATH" in line:
         category = "auditd"
+
+        # Decode hex-encoded commands commonly produced by auditd USER_CMD / EXECVE (e.g. cmd=636174202F6574632F736861646F77 -> cat /etc/shadow)
+        decoded_line = line
+        cmd_hex_match = re.search(r'cmd=([0-9a-fA-F]{4,})', line)
+        if cmd_hex_match:
+            try:
+                decoded_cmd = bytes.fromhex(cmd_hex_match.group(1)).decode("utf-8", errors="ignore")
+                decoded_line = line.replace(cmd_hex_match.group(0), f'cmd="{decoded_cmd}"')
+            except Exception:
+                pass
+
         # Extract actor if present
         auid_match = re.search(r'AUID="([^"]+)"', line)
         if auid_match and auid_match.group(1) != "unset":
@@ -136,16 +147,16 @@ def parse_auth_log_line(line: str) -> Dict[str, Any]:
         elif comm_match:
             process_name = comm_match.group(1)
 
-        # Check for attack signatures
-        if 'key="shadow_access"' in line or "/etc/shadow" in line:
+        # Check for attack signatures on decoded audit stream
+        if 'key="shadow_access"' in decoded_line or "/etc/shadow" in decoded_line:
             event_type = "sensitive_file_access"
             severity = "HIGH"
             target = "/etc/shadow"
-        elif 'key="cron_persistence"' in line or "/etc/cron.d" in line:
+        elif 'key="cron_persistence"' in decoded_line or "/etc/cron.d" in decoded_line:
             event_type = "cron_modification"
             severity = "HIGH"
             target = "/etc/cron.d"
-        elif "bash -i" in line or "/dev/tcp" in line:
+        elif "bash -i" in decoded_line or "/dev/tcp" in decoded_line:
             event_type = "reverse_shell_attempt"
             severity = "CRITICAL"
             target = "socket"
@@ -155,11 +166,16 @@ def parse_auth_log_line(line: str) -> Dict[str, Any]:
     elif "Failed password" in line or "authentication failure" in line:
         event_type = "auth_failure"
         severity = "MEDIUM"
+        decoded_line = line
     elif "Accepted" in line:
         event_type = "auth_success"
+        decoded_line = line
     elif "sudo:" in line:
         event_type = "sudo_execution"
         severity = "LOW"
+        decoded_line = line
+    else:
+        decoded_line = line
 
     return {
         "timestamp": now,
@@ -171,9 +187,9 @@ def parse_auth_log_line(line: str) -> Dict[str, Any]:
         "actor": actor,
         "source_ip": "127.0.0.1",
         "process_name": process_name,
-        "command_line": line[:1024],
+        "command_line": decoded_line[:1024],
         "target_resource": target,
-        "raw_json": json.dumps({"log": line}),
+        "raw_json": json.dumps({"log": decoded_line}),
     }
 
 
