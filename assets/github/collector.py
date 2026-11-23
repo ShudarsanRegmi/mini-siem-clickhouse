@@ -6,6 +6,7 @@ Supports live GitHub API polling (with GITHUB_TOKEN) as well as authenticated au
 """
 
 import os
+import re
 import sys
 import hmac
 import hashlib
@@ -121,29 +122,60 @@ def forward_webhook_event(event_name: str, payload_dict: Dict[str, Any]) -> bool
         return False
 
 
-def collect_live_github_events(repo_name: str = DEFAULT_REPO) -> List[Dict[str, Any]]:
+def collect_live_github_events(repo_name: str = DEFAULT_REPO, branch: str = "main") -> List[Dict[str, Any]]:
     """Polls real GitHub commit and activity events using authenticated GitHub CLI."""
     events = []
     try:
-        cmd = ["gh", "api", f"repos/{repo_name}/commits?per_page=10"]
+        cmd = ["gh", "api", f"repos/{repo_name}/commits?sha={branch}&per_page=10"]
         output = subprocess.check_output(cmd, universal_newlines=True, timeout=10)
         commits_data = json.loads(output)
         for c in commits_data:
+            sha = c.get("sha", "")
+            commit_msg = c.get("commit", {}).get("message", "")
+            sender = c.get("author", {}).get("login", c.get("commit", {}).get("author", {}).get("name", "unknown"))
+            commit_date = c.get("commit", {}).get("author", {}).get("date", "")
+
+            # Check for secrets in commit message or commit diff
+            secret_detected = False
+            secret_pattern_found = ""
+
+            if re.search(r'AKIA[0-9A-Z]{16}', commit_msg) or "PRIVATE KEY" in commit_msg or "ghp_" in commit_msg:
+                secret_detected = True
+                secret_pattern_found = "Credential pattern detected in commit message"
+            else:
+                try:
+                    detail_cmd = ["gh", "api", f"repos/{repo_name}/commits/{sha}"]
+                    detail_out = subprocess.check_output(detail_cmd, universal_newlines=True, timeout=5)
+                    detail_data = json.loads(detail_out)
+                    for f in detail_data.get("files", []):
+                        patch = f.get("patch", "")
+                        if re.search(r'AKIA[0-9A-Z]{16}', patch) or "PRIVATE KEY" in patch or "ghp_" in patch:
+                            secret_detected = True
+                            secret_pattern_found = f"Secret detected in file: {f.get('filename')}"
+                            break
+                except Exception:
+                    pass
+
+            action = "push_secret_leak" if secret_detected else "push"
             events.append({
                 "event_name": "push",
                 "payload": {
-                    "ref": "refs/heads/main",
+                    "ref": f"refs/heads/{branch}",
                     "repository": {"full_name": repo_name},
-                    "sender": {"login": c.get("author", {}).get("login", c.get("commit", {}).get("author", {}).get("name", "unknown"))},
+                    "sender": {"login": sender},
+                    "action": action,
                     "head_commit": {
-                        "id": c.get("sha", ""),
-                        "message": c.get("commit", {}).get("message", ""),
-                        "timestamp": c.get("commit", {}).get("author", {}).get("date", ""),
+                        "id": sha,
+                        "message": commit_msg,
+                        "timestamp": commit_date,
+                        "author": c.get("commit", {}).get("author", {}),
+                        "secret_leak_alert": secret_pattern_found if secret_detected else None,
                     },
                     "commits": [{
-                        "id": c.get("sha", ""),
-                        "message": c.get("commit", {}).get("message", ""),
+                        "id": sha,
+                        "message": commit_msg,
                         "author": c.get("commit", {}).get("author", {}),
+                        "secret_leak_alert": secret_pattern_found if secret_detected else None,
                     }],
                 },
             })
@@ -157,14 +189,15 @@ def collect_live_github_events(repo_name: str = DEFAULT_REPO) -> List[Dict[str, 
 def main():
     parser = argparse.ArgumentParser(description="GitHub Repository Telemetry Collector")
     parser.add_argument("--repo", type=str, default=DEFAULT_REPO, help="Repository name (owner/repo)")
+    parser.add_argument("--branch", type=str, default="main", help="Target git branch to poll (default: main)")
     parser.add_argument("--baseline", action="store_true", help="Force baseline simulated events instead of live API")
     args = parser.parse_args()
 
-    print(f"[*] Starting GitHub Telemetry Collector for repo '{args.repo}'...")
+    print(f"[*] Starting GitHub Telemetry Collector for repo '{args.repo}' on branch '{args.branch}'...")
     if args.baseline:
         events = generate_baseline_github_events(args.repo)
     else:
-        events = collect_live_github_events(args.repo)
+        events = collect_live_github_events(args.repo, branch=args.branch)
 
     sent = 0
     for ev in events:
