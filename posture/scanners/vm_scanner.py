@@ -10,6 +10,7 @@ Audits Linux VM baseline configurations against CIS Linux Server Benchmarks:
 
 import os
 import sys
+import json
 import subprocess
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -21,6 +22,43 @@ if str(REPO_ROOT) not in sys.path:
 VM_ASSET_ID = os.getenv("VM_ASSET_ID", "prod-linux-vm-01")
 VM_HOST = os.getenv("VM_HOST", "172.16.151.134")
 VM_USER = os.getenv("VM_USER", "aparichit")
+
+
+def audit_vm_with_trivy(host: str, user: str) -> List[Dict[str, Any]]:
+    """
+    Executes live Trivy OS rootfs vulnerability scan on the target VM.
+    Leverages pre-cached local vulnerability DB on the remote host for instant offline scanning.
+    """
+    findings = []
+    try:
+        cmd = [
+            "ssh",
+            "-o", "BatchMode=yes",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "-o", "ConnectTimeout=5",
+            f"{user}@{host}",
+            "/usr/local/bin/trivy rootfs --pkg-types os --scanners vuln --severity HIGH,CRITICAL --skip-db-update --offline-scan --skip-version-check --format json / 2>/dev/null",
+        ]
+        out = subprocess.check_output(cmd, universal_newlines=True, timeout=60)
+        data = json.loads(out)
+        for res in data.get("Results", []):
+            for v in res.get("Vulnerabilities", []):
+                findings.append({
+                    "asset_type": "vm",
+                    "asset_id": VM_ASSET_ID,
+                    "scanner_tool": "trivy-vm-rootfs",
+                    "finding_type": "vulnerability",
+                    "check_id": v.get("VulnerabilityID", "CVE-UNKNOWN"),
+                    "title": f"{v.get('PkgName', 'package')}: {v.get('Title', 'Vulnerability detected')[:100]}",
+                    "severity": v.get("Severity", "HIGH"),
+                    "status": "OPEN",
+                    "remediation": f"Upgrade {v.get('PkgName')} to >= {v.get('FixedVersion', 'latest patched release')}.",
+                    "details": f"Discovered by Trivy rootfs on {host}. Installed: {v.get('InstalledVersion')}. {v.get('Description', '')[:160]}",
+                })
+    except Exception:
+        pass
+    return findings
 
 
 def check_ssh_configuration(ssh_config_text: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -175,6 +213,7 @@ def scan_vm_posture(host: Optional[str] = None, user: Optional[str] = None) -> L
     findings.extend(check_ssh_configuration(sshd_content))
     findings.extend(check_cron_permissions())
     findings.extend(check_known_vulnerabilities())
+    findings.extend(audit_vm_with_trivy(target_host, target_user))
 
     print(f"[+] Found {len(findings)} posture findings for Linux VM '{VM_ASSET_ID}'.")
     return findings
