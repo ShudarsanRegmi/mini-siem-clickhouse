@@ -96,6 +96,43 @@ def collect_running_processes() -> List[Dict[str, Any]]:
     return events
 
 
+def collect_listening_ports() -> List[Dict[str, Any]]:
+    """Captures open network listeners on the host."""
+    events = []
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    try:
+        output = subprocess.check_output(["ss", "-tulnp"], universal_newlines=True, timeout=5)
+        for line in output.splitlines():
+            if "LISTEN" not in line and "UNCONN" not in line:
+                continue
+            match = re.search(r'(0\.0\.0\.0|\[::\]|\*|127\.0\.0\.1|::1):(\d+)', line)
+            if not match:
+                continue
+            bind_addr, port = match.group(1), match.group(2)
+            proc_match = re.search(r'users:\(\("([^"]+)",pid=(\d+)', line)
+            comm = proc_match.group(1) if proc_match else "unknown"
+            pid = proc_match.group(2) if proc_match else "0"
+
+            severity = "HIGH" if bind_addr in ("0.0.0.0", "[::]", "*") and port in ("21", "445", "139", "8888") else "INFO"
+            events.append({
+                "timestamp": now,
+                "asset_type": "laptop",
+                "asset_id": HOSTNAME,
+                "event_category": "network",
+                "event_type": "listening_port",
+                "severity": severity,
+                "actor": "aparichit",
+                "source_ip": bind_addr,
+                "process_name": comm,
+                "command_line": f"LISTEN {bind_addr}:{port} (comm={comm}, pid={pid})",
+                "target_resource": f"port/{port}",
+                "raw_json": json.dumps({"port": port, "bind": bind_addr, "comm": comm, "pid": pid}),
+            })
+    except Exception as e:
+        pass
+    return events
+
+
 def collect_auth_telemetry() -> List[Dict[str, Any]]:
     """Captures logged in users and terminal sessions."""
     events = []
@@ -126,6 +163,43 @@ def collect_auth_telemetry() -> List[Dict[str, Any]]:
     except Exception:
         pass
 
+    return events
+
+
+def collect_listening_ports() -> List[Dict[str, Any]]:
+    """Captures open network listeners on the host."""
+    events = []
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    try:
+        output = subprocess.check_output(["ss", "-tulnp"], universal_newlines=True, timeout=5)
+        for line in output.splitlines():
+            if "LISTEN" not in line and "UNCONN" not in line:
+                continue
+            match = re.search(r'(0\.0\.0\.0|\[::\]|\*|127\.0\.0\.1|::1):(\d+)', line)
+            if not match:
+                continue
+            bind_addr, port = match.group(1), match.group(2)
+            proc_match = re.search(r'users:\(\("([^"]+)",pid=(\d+)', line)
+            comm = proc_match.group(1) if proc_match else "unknown"
+            pid = proc_match.group(2) if proc_match else "0"
+
+            severity = "HIGH" if bind_addr in ("0.0.0.0", "[::]", "*") and port in ("21", "445", "139", "8888") else "INFO"
+            events.append({
+                "timestamp": now,
+                "asset_type": "laptop",
+                "asset_id": HOSTNAME,
+                "event_category": "network",
+                "event_type": "listening_port",
+                "severity": severity,
+                "actor": "aparichit",
+                "source_ip": bind_addr,
+                "process_name": comm,
+                "command_line": f"LISTEN {bind_addr}:{port} (comm={comm}, pid={pid})",
+                "target_resource": f"port/{port}",
+                "raw_json": json.dumps({"port": port, "bind": bind_addr, "comm": comm, "pid": pid}),
+            })
+    except Exception as e:
+        pass
     return events
 
 
@@ -163,7 +237,7 @@ def main():
     args = parser.parse_args()
 
     print(f"[*] Starting Laptop Telemetry Collector on host '{HOSTNAME}'...")
-    events = collect_running_processes() + collect_auth_telemetry()
+    events = collect_running_processes() + collect_auth_telemetry() + collect_listening_ports()
     print(f"[*] Collected {len(events)} events from host.")
     shipped = ship_telemetry(events)
     print(f"[+] Successfully forwarded {shipped} host telemetry events to ClickHouse.")

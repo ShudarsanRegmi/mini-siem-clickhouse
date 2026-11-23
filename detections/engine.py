@@ -26,6 +26,8 @@ from detections.rules.sec_vm_001_cred_dump import RULE_CONFIG as CONFIG_VM_001, 
 from detections.rules.sec_vm_002_cron_persistence import RULE_CONFIG as CONFIG_VM_002, build_query as QUERY_VM_002
 from detections.rules.sec_k8s_001_privileged_pod import RULE_CONFIG as CONFIG_K8S_001, build_query as QUERY_K8S_001
 from detections.rules.sec_k8s_002_suspicious_exec import RULE_CONFIG as CONFIG_K8S_002, build_query as QUERY_K8S_002
+from detections.rules.sec_k8s_003_vulnerable_workload_exploit import RULE_CONFIG as CONFIG_K8S_003, build_query as QUERY_K8S_003
+from detections.rules.sec_laptop_001_port_bind import RULE_CONFIG as CONFIG_LAPTOP_001, build_query as QUERY_LAPTOP_001
 from detections.rules.sec_git_001_secret_leak import RULE_CONFIG as CONFIG_GIT_001, build_query as QUERY_GIT_001
 
 load_env_file()
@@ -35,6 +37,8 @@ RULES = [
     {"config": CONFIG_VM_002, "query_builder": QUERY_VM_002},
     {"config": CONFIG_K8S_001, "query_builder": QUERY_K8S_001},
     {"config": CONFIG_K8S_002, "query_builder": QUERY_K8S_002},
+    {"config": CONFIG_K8S_003, "query_builder": QUERY_K8S_003},
+    {"config": CONFIG_LAPTOP_001, "query_builder": QUERY_LAPTOP_001},
     {"config": CONFIG_GIT_001, "query_builder": QUERY_GIT_001},
 ]
 

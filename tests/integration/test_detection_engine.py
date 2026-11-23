@@ -16,13 +16,13 @@ from detections.engine import evaluate_rules, RULES
 
 @pytest.mark.integration
 def test_all_rules_execute_valid_sql():
-    """Verifies that all 5 detection rule queries are syntactically valid ClickHouse SQL."""
+    """Verifies that all detection rule queries are syntactically valid ClickHouse SQL."""
     client = get_db_client(role="detector")
     now_dt = datetime.datetime.now(datetime.timezone.utc)
     start_str = (now_dt - datetime.timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
     end_str = now_dt.strftime("%Y-%m-%d %H:%M:%S")
 
-    assert len(RULES) == 5, f"Expected 5 detection rules, found {len(RULES)}"
+    assert len(RULES) >= 5, f"Expected at least 5 detection rules, found {len(RULES)}"
 
     for r in RULES:
         cfg = r["config"]
