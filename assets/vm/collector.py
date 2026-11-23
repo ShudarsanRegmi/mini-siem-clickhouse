@@ -111,6 +111,15 @@ def generate_baseline_vm_telemetry() -> List[Dict[str, Any]]:
 def parse_auth_log_line(line: str) -> Dict[str, Any]:
     """Parses standard Linux auth.log or auditd log lines into a TelemetryEvent."""
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    event_timestamp = now
+    audit_ts_match = re.search(r'msg=audit\((\d+(?:\.\d+)?):', line)
+    if audit_ts_match:
+        try:
+            epoch = float(audit_ts_match.group(1))
+            event_timestamp = datetime.datetime.fromtimestamp(epoch, tz=datetime.timezone.utc).isoformat()
+        except Exception:
+            event_timestamp = now
+
     actor = "root" if "root" in line else "unknown"
     severity = "INFO"
     category = "auth"
@@ -178,7 +187,7 @@ def parse_auth_log_line(line: str) -> Dict[str, Any]:
         decoded_line = line
 
     return {
-        "timestamp": now,
+        "timestamp": event_timestamp,
         "asset_type": "vm",
         "asset_id": VM_ASSET_ID,
         "event_category": category,

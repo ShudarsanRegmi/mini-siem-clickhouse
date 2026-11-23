@@ -51,6 +51,7 @@ data/
 *.log
 .audit/
 .detection_state.json
+.correlated_detection_state.json
 k8s-audit.log
 *.pid
 clickhouse-data/
